@@ -1,165 +1,67 @@
-// app/create.jsx
-import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Stack, useRouter } from "expo-router";
 import { Formik } from "formik";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import * as Yup from "yup"; // lowercase — correct
+import { Image, ScrollView, StyleSheet, Text } from "react-native";
+import * as Yup from "yup";
+import MyButton from "./components/MyButton";
+import MyTextInput from "./components/MyTextInput";
+import ScreenContainer from "./components/ScreenContainer";
 import { addItem } from "./services/storageService";
 
-const CreateSchema = Yup.object().shape({
-  title: Yup.string().trim().required("Title is required"),
-  description: Yup.string().trim(),
+const ItemSchema = Yup.object().shape({
+  title: Yup.string().required("Title required"),
+  category: Yup.string(),
 });
 
-export default function CreateTask() {
+export default function CreateScreen() { // Renamed from CreateItem to be clearer
   const router = useRouter();
 
+  async function pickImage(setFieldValue) {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return alert("Permission denied");
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!res.canceled && res.assets && res.assets[0]) {
+      setFieldValue("image", res.assets[0].uri);
+    }
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <ScreenContainer>
+      <Stack.Screen options={{ title: "Create Task" }} />
+      <Formik
+        initialValues={{ title: "", category: "", notes: "", image: null }}
+        validationSchema={ItemSchema}
+        onSubmit={async (values) => {
+          await addItem(values);
+          router.replace("/(tabs)/tasks");
+        }}
       >
-        <Text style={styles.header}>Create New Task</Text>
+        {({ handleSubmit, handleChange, values, errors, touched, setFieldValue }) => (
+          <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>
+            <MyTextInput label="Title" placeholder="Task title" value={values.title} onChangeText={handleChange("title")} />
+            {errors.title && touched.title ? <Text style={styles.error}>{errors.title}</Text> : null}
 
-        <Formik
-          initialValues={{ title: "", description: "" }}
-          validationSchema={CreateSchema}
-          onSubmit={async (values, { resetForm }) => {
-            await addItem({
-              id: Date.now().toString(),
-              title: values.title.trim(),
-              description: values.description?.trim() || "",
-              createdAt: Date.now(),
-              isFavorite: false,
-              isComplete: false,
-            });
-            resetForm();
-            router.push("/tasks");
-          }}
-        >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            values,
-            errors,
-            touched,
-          }) => (
-            <>
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Title</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    touched.title && errors.title ? styles.inputError : null,
-                  ]}
-                  placeholder="Task title..."
-                  placeholderTextColor="#999"
-                  onChangeText={handleChange("title")}
-                  onBlur={handleBlur("title")}
-                  value={values.title}
-                />
-                {touched.title && errors.title && (
-                  <Text style={styles.error}>{errors.title}</Text>
-                )}
-              </View>
+            <MyTextInput label="Category" placeholder="Category" value={values.category} onChangeText={handleChange("category")} />
 
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={styles.textarea}
-                  placeholder="Add more details..."
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={4}
-                  onChangeText={handleChange("description")}
-                  onBlur={handleBlur("description")}
-                  value={values.description}
-                />
-              </View>
+            <MyTextInput label="Notes" placeholder="Notes" value={values.notes} onChangeText={handleChange("notes")} multiline numberOfLines={4} />
 
-              <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                <Text style={styles.buttonText}>Save Task</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </Formik>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            {values.image ? <Image source={{ uri: values.image }} style={styles.image} /> : null}
+
+            <MyButton text="Pick Image" onPress={() => pickImage(setFieldValue)} />
+            <MyButton text="Save" onPress={handleSubmit} style={{ marginTop: 8 }} />
+          </ScrollView>
+        )}
+      </Formik>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F4F6FA",
-    padding: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 25,
-    marginTop: 10,
-    color: "#1A1A1A",
-  },
-  fieldContainer: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-    color: "#333",
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  textarea: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    height: 120,
-    textAlignVertical: "top",
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  inputError: {
-    borderColor: "#FF6B6B",
-  },
-  error: {
-    color: "#FF6B6B",
-    marginTop: 4,
-    fontSize: 13,
-  },
-  button: {
-    backgroundColor: "#4C6EF5",
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 15,
-    shadowColor: "#4C6EF5",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  form: { padding: 12 },
+  error: { color: "red", marginBottom: 10, marginTop: -6 },
+  image: { height: 150, width: "100%", borderRadius: 8, marginVertical: 8, backgroundColor: "#eee" },
 });

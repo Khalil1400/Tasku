@@ -1,17 +1,13 @@
-// app/calendar.jsx
-import { SafeAreaView, StyleSheet, Text } from "react-native";
+import { Text, View } from "react-native";
+import ScreenContainer from "../components/ScreenContainer";
 
 export default function Calendar() {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Calendar</Text>
-      <Text style={styles.sub}>(Feature coming soon)</Text>
-    </SafeAreaView>
+    <ScreenContainer>
+      <View style={{ padding: 20 }}>
+        <Text style={{ fontSize: 18, fontWeight: "700" }}>Calendar</Text>
+        <Text style={{ marginTop: 8, color: "#666" }}>Placeholder calendar screen (you can expand later).</Text>
+      </View>
+    </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#121212", padding: 20 },
-  title: { color: "#fff", fontSize: 28, fontWeight: "700" },
-  sub: { color: "#777", fontSize: 16, marginTop: 10 },
-});

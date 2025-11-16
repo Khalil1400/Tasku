@@ -1,9 +1,7 @@
-// app/constants/colors.js
 export default {
-  darkBg: "#000000",
-  primary: "#413D9B",
-  accent: "#9FB4FF",
-  text: "#FFFFFF",
-  muted: "#DDE3F5",
-  danger: "#FF6B6B",
+  accent: "#4b7bec",
+  textPrimary: "#111",
+  textSecondary: "#666",
+  danger: "#d9534f",
+  card: "#f7f9fc",
 };

@@ -1,92 +1,46 @@
-// app/(tabs)/profile.jsx
-import { useEffect, useState } from "react";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import MyButton from "../../components/MyButton"; // FIXED
-import colors from "../../constants/colors"; // FIXED
-import { getProfile } from "../../services/authService"; // FIXED
+import * as ImagePicker from "expo-image-picker";
+import { useState } from "react";
+import { Image, StyleSheet, Text, View } from "react-native";
+import MyButton from "../components/MyButton";
+import ScreenContainer from "../components/ScreenContainer";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function ProfileScreen() {
-  const [profile, setProfile] = useState(null);
+export default function Profile() {
+  const { user, updateProfile, signOut } = useAuth();
+  const [loadingImage, setLoadingImage] = useState(false);
 
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const data = await getProfile();
-        setProfile(data);
-      } catch (error) {
-        Alert.alert("Error", "Failed to load profile.");
-      }
+  async function changeAvatar() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return alert("Permission denied");
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7
+    });
+    if (!res.canceled && res.assets && res.assets[0]) {
+      setLoadingImage(true);
+      await updateProfile({ avatar: res.assets[0].uri });
+      setLoadingImage(false);
     }
-    loadProfile();
-  }, []);
-
-  if (!profile) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
   }
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={{ uri: profile.avatar }}
-        style={styles.avatar}
-      />
+    <ScreenContainer>
+      <View style={styles.center}>
+        <Image source={{ uri: user?.avatar || "https://picsum.photos/200" }} style={styles.avatar} />
+        <Text style={styles.name}>{user?.name || "Anonymous"}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
 
-      <Text style={styles.name}>{profile.name}</Text>
-      <Text style={styles.email}>{profile.email}</Text>
-
-      <MyButton
-        title="Edit Profile"
-        onPress={() => Alert.alert("Edit", "Edit profile pressed")}
-      />
-
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={() => Alert.alert("Logout", "Logged out")}
-      >
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
-    </View>
+        <MyButton text="Change Avatar" onPress={changeAvatar} />
+        <MyButton text="Logout" variant="secondary" onPress={signOut} style={{ marginTop: 12 }} />
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: colors.text,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: colors.text,
-  },
-  email: {
-    fontSize: 16,
-    color: colors.muted,
-    marginBottom: 20,
-  },
-  logoutBtn: {
-    marginTop: 20,
-    padding: 12,
-  },
-  logoutText: {
-    color: "#ff5c5c",
-    fontSize: 16,
-  },
+  center: { alignItems: "center", padding: 20 },
+  avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 12 },
+  name: { fontSize: 18, fontWeight: "700" },
+  email: { color: "#666", marginBottom: 12 },
 });

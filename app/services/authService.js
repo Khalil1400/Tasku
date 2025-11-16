@@ -1,37 +1,36 @@
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TOKEN_KEY = 'findit_token_v1';
-const USER_KEY = 'findit_user_v1';
+const PROFILE_KEY = "taskmate_profile_v1";
 
-export async function loginMock({ email, password }) {
-  if (!email || !password) {
-    throw new Error('Email and password are required.');
-  }
-
-  const token = `mock-token:${Date.now()}`;
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
-
-  const profile = {
-    email,
-    displayName: email.split('@')[0] || 'User',
-    avatar: null,
-  };
-
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(profile));
-
-  return { token, profile };
-}
-
-export async function getToken() {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+export async function loginMock(email, password) {
+  const token = "token_" + Math.random().toString(36).slice(2, 10);
+  const profile = { name: email.split("@")[0] || "User", email, avatar: null };
+  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  return { token, ...profile };
 }
 
 export async function getProfile() {
-  const raw = await SecureStore.getItemAsync(USER_KEY);
-  return raw ? JSON.parse(raw) : null;
+  try {
+    const raw = await AsyncStorage.getItem(PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.log("getProfile error", err);
+    return null;
+  }
+}
+
+export async function saveProfile(profile) {
+  try {
+    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  } catch (err) {
+    console.log("saveProfile error", err);
+  }
 }
 
 export async function logout() {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-  await SecureStore.deleteItemAsync(USER_KEY);
+  try {
+    await AsyncStorage.removeItem(PROFILE_KEY);
+  } catch (err) {
+    console.log("logout error", err);
+  }
 }

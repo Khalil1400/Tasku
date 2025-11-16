@@ -1,91 +1,83 @@
-// app/services/storageService.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { v4 as uuidv4 } from "react-native-uuid";
 
-const ITEMS_KEY = "findit_items_v1";
+const ITEMS_KEY = "taskmate_items_v1";
 
-async function safeGetRaw(key) {
+export async function loadItems() {
   try {
-    return await AsyncStorage.getItem(key);
-  } catch (err) {
-    console.log("AsyncStorage get error for", key, err);
-    return null;
-  }
-}
-
-async function safeSetRaw(key, value) {
-  try {
-    await AsyncStorage.setItem(key, value);
-    return true;
-  } catch (err) {
-    console.log("AsyncStorage set error for", key, err);
-    return false;
-  }
-}
-
-export async function getAllItems() {
-  const raw = await safeGetRaw(ITEMS_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.log("getAllItems JSON parse error", err);
+    const json = await AsyncStorage.getItem(ITEMS_KEY);
+    return json ? JSON.parse(json) : [];
+  } catch (e) {
+    console.log("Load error:", e);
     return [];
   }
 }
 
-export async function saveAllItems(items = []) {
-  return await safeSetRaw(ITEMS_KEY, JSON.stringify(items));
-}
-
-export async function addItem(item) {
+export async function saveItems(items) {
   try {
-    const items = await getAllItems();
-    const newItem = { ...item, id: item.id ?? String(Date.now()) };
-    items.unshift(newItem);
-    await saveAllItems(items);
-    return newItem;
-  } catch (err) {
-    console.log("addItem error", err);
-    throw err;
+    await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.log("Save error:", e);
   }
 }
 
-// alias some previously used names
-export async function saveItem(item) {
-  return addItem(item);
+export async function getAllItems() {
+  return await loadItems();
 }
 
 export async function getItemById(id) {
-  const items = await getAllItems();
-  return items.find((i) => i.id === id) || null;
+  const items = await loadItems();
+  return items.find((item) => item.id === id);
 }
 
-export async function updateItem(itemOrId, patch) {
-  try {
-    const items = await getAllItems();
-    let updated;
-    if (typeof itemOrId === "string") {
-      updated = items.map((i) => (i.id === itemOrId ? { ...i, ...patch } : i));
-    } else {
-      updated = items.map((i) => (i.id === itemOrId.id ? { ...i, ...itemOrId } : i));
-    }
-    await saveAllItems(updated);
-    return true;
-  } catch (err) {
-    console.log("updateItem error", err);
-    throw err;
+export async function addItem(itemData) {
+  const items = await loadItems();
+  const newItem = {
+    id: uuidv4(),
+    ...itemData,
+    createdAt: Date.now(),
+    isFavorite: false,
+  };
+  const updatedItems = [newItem, ...items];
+  await saveItems(updatedItems);
+  return newItem;
+}
+
+export async function updateItem(updatedItem) {
+  let items = await loadItems();
+  const index = items.findIndex((item) => item.id === updatedItem.id);
+  if (index > -1) {
+    items[index] = updatedItem;
+    await saveItems(items);
   }
+  return updatedItem;
 }
 
 export async function deleteItem(id) {
-  try {
-    const items = await getAllItems();
-    const filtered = items.filter((i) => i.id !== id);
-    await saveAllItems(filtered);
-    return true;
-  } catch (err) {
-    console.log("deleteItem error", err);
-    throw err;
+  let items = await loadItems();
+  const updatedItems = items.filter((item) => item.id !== id);
+  await saveItems(updatedItems);
+}
+
+export async function toggleFavorite(id) {
+  let items = await loadItems();
+  const index = items.findIndex((item) => item.id === id);
+  if (index > -1) {
+    items[index].isFavorite = !items[index].isFavorite;
+    await saveItems(items);
   }
+}
+
+export async function resetAllData() {
+  await saveItems([]);
+}
+
+export function createItem(title, category) {
+  return {
+    id: uuidv4(),
+    title,
+    category,
+    createdAt: Date.now(),
+    isFavorite: false,
+  };
 }

@@ -1,92 +1,80 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Formik } from 'formik';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Yup from 'yup';
-import MyButton from '../components/MyButton';
-import MyTextInput from '../components/MyTextInput';
-import colors from './constants/colors';
-import { getAllItems, updateItem } from './services/storageService';
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Formik } from "formik";
+import { useEffect, useState } from "react";
+import { Image, ScrollView, StyleSheet, Text } from "react-native";
+import * as Yup from "yup";
+import MyButton from "./components/MyButton";
+import MyTextInput from "./components/MyTextInput";
+import ScreenContainer from "./components/ScreenContainer";
+import { getItemById, updateItem } from "./services/storageService";
 
-const EditSchema = Yup.object().shape({
-  title: Yup.string().required('Title required'),
-  category: Yup.string().optional(),
-});
+const ItemSchema = Yup.object().shape({ title: Yup.string().required("Title required") });
 
-export default function EditTask() {
-  const router = useRouter();
+export default function EditScreen() {
   const { id } = useLocalSearchParams();
-
-  const [task, setTask] = useState(null);
+  const router = useRouter();
+  const [initial, setInitial] = useState(null);
 
   useEffect(() => {
-    async function load() {
-      const all = await getAllItems();
-      setTask(all.find((i) => i.id === id) || null);
-    }
-    load();
+    (async () => {
+      const it = await getItemById(id);
+      setInitial(it);
+    })();
   }, [id]);
 
-  if (!task) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.notFound}>Task not found.</Text>
-      </View>
-    );
+  if (!initial) {
+    return <ScreenContainer><Text style={{ padding: 20 }}>Loading...</Text></ScreenContainer>;
+  }
+
+  async function pickImage(setFieldValue) {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return alert("Permission denied");
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!res.canceled && res.assets && res.assets[0]) {
+      setFieldValue("image", res.assets[0].uri);
+    }
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Edit Task</Text>
-
+    <ScreenContainer>
       <Formik
         initialValues={{
-          title: task.title,
-          category: task.category || '',
+          title: initial.title,
+          category: initial.category || "",
+          notes: initial.notes || "",
+          image: initial.image,
         }}
-        validationSchema={EditSchema}
-        onSubmit={async (values, { setSubmitting }) => {
-          const updated = { ...task, title: values.title, category: values.category };
-          await updateItem(updated);
-          router.replace('/tasks');
-          setSubmitting(false);
+        validationSchema={ItemSchema}
+        onSubmit={async (values) => {
+          await updateItem({ ...initial, ...values });
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace({ pathname: "/(tabs)/task/[id]", params: { id } });
+          }
         }}
       >
-        {({ handleChange, handleBlur, handleSubmit, values, touched, errors, isSubmitting }) => (
-          <View>
-            <MyTextInput
-              label="Task Title"
-              value={values.title}
-              onChangeText={handleChange('title')}
-              onBlur={handleBlur('title')}
-            />
-            {touched.title && errors.title && <Text style={styles.error}>{errors.title}</Text>}
-
-            <MyTextInput
-              label="Category"
-              value={values.category}
-              onChangeText={handleChange('category')}
-              onBlur={handleBlur('category')}
-              style={{ marginTop: 12 }}
-            />
-
-            <MyButton
-              text={isSubmitting ? 'Saving...' : 'Save Changes'}
-              onPress={handleSubmit}
-              loading={isSubmitting}
-              style={{ marginTop: 20 }}
-            />
-          </View>
+        {({ handleSubmit, handleChange, values, setFieldValue }) => (
+          <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>
+            <MyTextInput label="Title" value={values.title} onChangeText={handleChange("title")} />
+            <MyTextInput label="Category" value={values.category} onChangeText={handleChange("category")} />
+            <MyTextInput label="Notes" value={values.notes} onChangeText={handleChange("notes")} multiline />
+            {values.image ? <Image source={{ uri: values.image }} style={styles.image} /> : null}
+            <MyButton text="Change Image" onPress={() => pickImage(setFieldValue)} />
+            <MyButton text="Save Changes" onPress={handleSubmit} style={{ marginTop: 8 }} />
+          </ScrollView>
         )}
       </Formik>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.darkBg, padding: 20 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.darkBg },
-  notFound: { color: colors.text, fontSize: 20 },
-  header: { color: colors.text, fontSize: 24, fontWeight: '700', marginBottom: 20 },
-  error: { color: colors.danger, marginTop: 4 },
+  form: { padding: 12 },
+  image: { height: 150, width: "100%", borderRadius: 8, marginVertical: 8, backgroundColor: "#eee" },
 });
