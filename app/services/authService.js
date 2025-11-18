@@ -1,17 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const PROFILE_KEY = "taskmate_profile_v1";
+const globalToken = "datas";
 
 export async function loginMock(email, password) {
   const token = "token_" + Math.random().toString(36).slice(2, 10);
   const profile = { name: email.split("@")[0] || "User", email, avatar: null };
-  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  await AsyncStorage.setItem(globalToken, JSON.stringify(profile));
   return { token, ...profile };
 }
 
 export async function getProfile() {
   try {
-    const raw = await AsyncStorage.getItem(PROFILE_KEY);
+    const raw = await AsyncStorage.getItem(globalToken);
     return raw ? JSON.parse(raw) : null;
   } catch (err) {
     console.log("getProfile error", err);
@@ -21,7 +21,7 @@ export async function getProfile() {
 
 export async function saveProfile(profile) {
   try {
-    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    await AsyncStorage.setItem(globalToken, JSON.stringify(profile));
   } catch (err) {
     console.log("saveProfile error", err);
   }
@@ -29,7 +29,7 @@ export async function saveProfile(profile) {
 
 export async function logout() {
   try {
-    await AsyncStorage.removeItem(PROFILE_KEY);
+    await AsyncStorage.removeItem(globalToken);
   } catch (err) {
     console.log("logout error", err);
   }

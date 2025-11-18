@@ -1,38 +1,81 @@
-// app/index.jsx
-import { Link, useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import MyButton from "./components/MyButton";
-import ScreenContainer from "./components/ScreenContainer";
-import colors from "./constants/colors";
-import { useAuth } from "./contexts/AuthContext";
+import { router } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function Landing() {
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+// Import your logo
+import TaskuLogo from "../assets/images/Tasku_logo.png";
 
-  return (
-    <ScreenContainer>
-      <View style={styles.center}>
-        <Text style={styles.title}>TaskMate</Text>
-        <Text style={styles.subtitle}>Simple tasks with images, favorites, and secure login</Text>
+export default function HomeScreen() {
+  return (
+    <View style={styles.container}>
+      
+      <Image source={TaskuLogo} style={styles.logo} resizeMode="contain" />
 
-        <MyButton
-          text={isAuthenticated ? "Open App" : "Login"}
-          onPress={() => (isAuthenticated ? router.push("/(tabs)/tasks") : router.push("/login"))}
-          style={{ marginTop: 20 }}
-        />
+      <Text style={styles.title}>Tasku</Text>
+      <Text style={styles.subtitle}>
+        Your personal task manager crafted for simplicity
+      </Text>
+      <View style={{ height: 35 }} />
 
-        <Link href="/about" style={{ marginTop: 16 }}>
-          <Text style={styles.link}>About / Info</Text>
-      _</Link>
-      </View>
-    </ScreenContainer>
-  );
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push("/login")}
+      >
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.guestButton}
+        onPress={() => router.push("/(tabs)")}
+      >
+        <Text style={styles.guestText}>Continue as Guest</Text>
+      </TouchableOpacity>
+
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center", flex: 1, padding: 20 },
-  title: { fontSize: 36, fontWeight: "800", color: colors.textPrimary },
-  subtitle: { color: colors.textSecondary, marginTop: 10, textAlign: "center" },
-  link: { color: colors.accent, textAlign: "center" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 25,
+    backgroundColor: "#f8f8f8",
+  },
+  logo: {
+    width: 140,
+    height: 140,
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 38,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#666",
+    marginHorizontal: 20,
+  },
+  button: {
+    backgroundColor: "#3b82f6",
+    paddingVertical: 12,
+    paddingHorizontal: 50,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  guestButton: {
+    marginTop: 15,
+  },
+  guestText: {
+    color: "#3b82f6",
+    fontSize: 16,
+  },
 });

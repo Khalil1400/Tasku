@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import Card from "../../components/Card";
 import MyButton from "../../components/MyButton";
@@ -16,7 +16,7 @@ export default function TaskDetails() {
     setItem(it);
   }
 
-  useEffect(() => { load(); }, [id]);
+  useFocusEffect(() => { load(); });
 
   if (!item) return <ScreenContainer><Text style={{ padding: 20 }}>Loading...</Text></ScreenContainer>;
 
@@ -25,7 +25,7 @@ export default function TaskDetails() {
       <Card>
         {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : null}
         <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.meta}>{item.category || "General"} • {new Date(item.createdAt).toLocaleString()}</Text>
+        <Text style={styles.meta}>{item.category || "General"} - {new Date(item.createdAt).toLocaleString()}</Text>
         <Text style={styles.body}>{item.notes || ""}</Text>
 
         <View style={{ flexDirection: "row", marginTop: 12, justifyContent: "space-between" }}>

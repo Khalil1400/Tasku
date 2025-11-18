@@ -13,7 +13,7 @@ const ItemSchema = Yup.object().shape({
   category: Yup.string(),
 });
 
-export default function CreateScreen() { // Renamed from CreateItem to be clearer
+export default function CreateScreen() {
   const router = useRouter();
 
   async function pickImage(setFieldValue) {
@@ -35,10 +35,7 @@ export default function CreateScreen() { // Renamed from CreateItem to be cleare
       <Formik
         initialValues={{ title: "", category: "", notes: "", image: null }}
         validationSchema={ItemSchema}
-        onSubmit={async (values) => {
-          await addItem(values);
-          router.replace("/(tabs)/tasks");
-        }}
+        onSubmit={(v) => addItem(v).then(() => router.replace("(tabs)/tasks"))}
       >
         {({ handleSubmit, handleChange, values, errors, touched, setFieldValue }) => (
           <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>

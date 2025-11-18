@@ -27,18 +27,19 @@ export async function getAllItems() {
 
 export async function getItemById(id) {
   const items = await loadItems();
-  return items.find((item) => item.id === id);
+  return items.find((item) => item.id.toString() === id.toString());
 }
 
 export async function addItem(itemData) {
   const items = await loadItems();
   const newItem = {
-    id: uuidv4(),
+    id: Math.random() * 100000,
     ...itemData,
     createdAt: Date.now(),
     isFavorite: false,
   };
   const updatedItems = [newItem, ...items];
+  console.log(updatedItems)
   await saveItems(updatedItems);
   return newItem;
 }

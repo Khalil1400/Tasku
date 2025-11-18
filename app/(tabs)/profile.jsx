@@ -1,6 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
+import TaskuLogo from "../../assets/images/Tasku_logo.png";
 import MyButton from "../components/MyButton";
 import ScreenContainer from "../components/ScreenContainer";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,11 +13,13 @@ export default function Profile() {
   async function changeAvatar() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return alert("Permission denied");
+
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.7
     });
+
     if (!res.canceled && res.assets && res.assets[0]) {
       setLoadingImage(true);
       await updateProfile({ avatar: res.assets[0].uri });
@@ -27,7 +30,12 @@ export default function Profile() {
   return (
     <ScreenContainer>
       <View style={styles.center}>
-        <Image source={{ uri: user?.avatar || "https://picsum.photos/200" }} style={styles.avatar} />
+
+        <Image
+          source={user?.avatar ? { uri: user.avatar } : TaskuLogo}
+          style={styles.avatar}
+        />
+
         <Text style={styles.name}>{user?.name || "Anonymous"}</Text>
         <Text style={styles.email}>{user?.email}</Text>
 

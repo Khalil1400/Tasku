@@ -1,3 +1,4 @@
+// app/(tabs)/settings.jsx
 import { Alert, StyleSheet, Text, View } from "react-native";
 import MyButton from "../components/MyButton";
 import ScreenContainer from "../components/ScreenContainer";
@@ -8,6 +9,7 @@ export default function Settings() {
     <ScreenContainer>
       <View style={styles.container}>
         <Text style={styles.heading}>Settings</Text>
+
         <MyButton
           variant="secondary"
           text="Reset All App Data"
@@ -19,13 +21,16 @@ export default function Settings() {
                 style: "destructive",
                 onPress: async () => {
                   await resetAllData();
-                  Alert.alert("Done");
-                }
-              }
+                  Alert.alert("Data reset completed");
+                },
+              },
             ]);
           }}
         />
-        <Text style={{ marginTop: 20, color: "#666" }}>About: Minimal TaskMate demo app for assignment</Text>
+
+        <Text style={{ marginTop: 20, color: "#666" }}>
+          About: Minimal Tasku demo app for project
+        </Text>
       </View>
     </ScreenContainer>
   );

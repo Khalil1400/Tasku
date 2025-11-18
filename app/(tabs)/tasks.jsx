@@ -1,5 +1,5 @@
 import { AntDesign } from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Card from "../components/Card";
@@ -9,7 +9,6 @@ import colors from "../constants/colors";
 import { getAllItems, toggleFavorite } from "../services/storageService";
 
 export default function TasksList() {
-  const nav = useNavigation();
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,15 +16,20 @@ export default function TasksList() {
   async function load() {
     setLoading(true);
     const all = await getAllItems();
+
     setItems(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     setLoading(false);
   }
 
+  useFocusEffect(() => {
+    load();
+  })
+
   useEffect(() => {
-    const unsubscribe = nav.addListener("focus", () => { load(); });
+    const unsubscribe = router.addListener?.("focus", () => { load(); });
     load();
     return unsubscribe;
-  }, [nav]);
+  }, []);
 
   const filtered = items.filter(i => i.title.toLowerCase().includes(query.toLowerCase()));
 
@@ -33,26 +37,45 @@ export default function TasksList() {
     <ScreenContainer>
       <View style={styles.header}>
         <Text style={styles.title}>My Tasks</Text>
-        <MyButton text="Create" onPress={() => nav.push("/create")} />
+        <MyButton text="Create" onPress={() => router.push("/create")} />
       </View>
 
-      <TextInput placeholder="Search..." value={query} onChangeText={setQuery} style={styles.search} />
+      <TextInput
+        placeholder="Search..."
+        value={query}
+        onChangeText={setQuery}
+        style={styles.search}
+      />
 
-      {loading ? <Text style={{ padding: 20 }}>Loading...</Text> : filtered.length === 0 ? (
-        <View style={styles.empty}><Text style={styles.emptyText}>No tasks. Tap Create to add one.</Text></View>
+      {loading ? (
+        <Text style={{ padding: 20 }}>Loading...</Text>
+      ) : filtered.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No tasks. Tap Create to add one.</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(i) => i.id}
           renderItem={({ item }) => (
-            <Card onPress={() => nav.push({ pathname: '/(tabs)/task/[id]', params: { id: item.id } })}>
+            <Card onPress={() => router.push(`/task/${item.id}`)}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemTitle}>{item.title}</Text>
-                  <Text style={styles.meta}>{item.category || "General"} • {new Date(item.createdAt).toLocaleString()}</Text>
+                  <Text style={styles.meta}>
+                    {item.category || "General"} • {new Date(item.createdAt).toLocaleString()}
+                  </Text>
                 </View>
-                <TouchableOpacity onPress={async () => { await toggleFavorite(item.id); load(); }}>
-                  <AntDesign name={item.isFavorite ? "star" : "staro"} size={22} color={item.isFavorite ? colors.accent : "#666"} />
+
+                <TouchableOpacity onPress={async () => {
+                  await toggleFavorite(item.id);
+                  load();
+                }}>
+                  <AntDesign
+                    name={item.isFavorite ? "star" : "staro"}
+                    size={22}
+                    color={item.isFavorite ? colors.accent : "#666"}
+                  />
                 </TouchableOpacity>
               </View>
             </Card>

@@ -1,8 +1,8 @@
-// app/login.jsx
+// app/login.js
 import { useRouter } from "expo-router";
 import { Formik } from "formik";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Yup from "yup";
 import MyButton from "./components/MyButton";
 import MyTextInput from "./components/MyTextInput";
@@ -15,71 +15,113 @@ const LoginSchema = Yup.object().shape({
   password: Yup.string().min(3, "Too short").required("Password required"),
 });
 
-export default function LoginScreen() {
-  const { signIn } = useAuth();
+export default function Login() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  async function handleGuest() {
+    setLoading(true);
+    try {
+      await signIn("guest@example.com", "guest");
+      router.replace("/(tabs)/tasks");
+    } catch (err) {
+      console.warn("Guest sign-in failed:", err?.message || err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <ScreenContainer>
-      <View style={styles.inner}>
-        <Text style={styles.heading}>Welcome back</Text>
-        <Text style={styles.sub}>Login to continue</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboard}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          <View style={styles.inner}>
+            <Text style={styles.heading}>Welcome back</Text>
+            <Text style={styles.sub}>Log in to continue to TaskMate</Text>
 
-        <Formik
-          initialValues={{ email: "", password: "" }}
-          validationSchema={LoginSchema}
-          onSubmit={async (values, actions) => {
-            setLoading(true);
-            try {
-              await signIn(values.email, values.password);
-              router.replace("/(tabs)/tasks");
-            } catch (err) {
-              actions.setFieldError("general", err.message || "Login failed");
-            } finally {
-              setLoading(false);
-            }
-          }}
-        >
-         {({ handleSubmit, handleChange, values, errors, touched }) => (
-            <>
-              <MyTextInput
-                placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={values.email}
-                onChangeText={handleChange("email")}
-                label="Email"
-              />
-              {errors.email && touched.email ? <Text style={styles.errorSmall}>{errors.email}</Text> : null}
+            <Formik
+              initialValues={{ email: "", password: "" }}
+              validationSchema={LoginSchema}
+              onSubmit={async (values, actions) => {
+                setLoading(true);
+                actions.setFieldError("general", "");
+                try {
+                  await signIn(values.email, values.password);
+                  router.replace("/(tabs)/tasks");
+                } catch (err) {
+                  actions.setFieldError("general", err?.message || "Login failed");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              {({ handleSubmit, handleChange, values, errors, touched, setFieldTouched }) => (
+                <>
+                  <View style={{ marginBottom: 12 }}>
+                    <MyTextInput
+                      label="Email"
+                      value={values.email}
+                      onChangeText={handleChange("email")}
+                      onBlur={() => setFieldTouched("email", true)}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      textContentType="emailAddress"
+                      placeholder="you@example.com"
+                    />
+                    {touched.email && errors.email ? <Text style={styles.errorSmall}>{errors.email}</Text> : null}
+                  </View>
 
-              <MyTextInput
-                placeholder="Password"
-                secureTextEntry
-                 value={values.password}
-                onChangeText={handleChange("password")}
-                label="Password"
-              />
-              {errors.password && touched.password ? <Text style={styles.errorSmall}>{errors.password}</Text> : null}
+                  <View style={{ marginBottom: 6 }}>
+                    <MyTextInput
+                      label="Password"
+                      value={values.password}
+                      onChangeText={handleChange("password")}
+                      onBlur={() => setFieldTouched("password", true)}
+                      secureTextEntry
+                      placeholder="••••••••"
+                      textContentType="password"
+                    />
+                    {touched.password && errors.password ? <Text style={styles.errorSmall}>{errors.password}</Text> : null}
+                  </View>
 
-              {errors.general ? <Text style={styles.error}>{errors.general}</Text> : null}
+                  {errors.general ? <Text style={styles.error}>{errors.general}</Text> : null}
 
-              <MyButton text="Login" onPress={handleSubmit} loading={loading} style={{ marginTop: 12 }} />
-            </>
-          )}
-        </Formik>
-        
-        <Text style={styles.guestHint}>Use any email + password to simulate login (mocked)</Text>
-      </View>
+                  <View style={{ marginTop: 14 }}>
+                    <MyButton text="Log in" onPress={handleSubmit} loading={loading} />
+                  </View>
+
+                  <View style={styles.row}>
+                    <TouchableOpacity onPress={handleGuest} disabled={loading}>
+                      <Text style={styles.guestLink}>Continue as guest</Text>
+                    </TouchableOpacity>
+
+                    {/* Create account link removed to prevent navigation to non-existent route */}
+                  </View>
+
+                </>
+              )}
+            </Formik>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  inner: { flex: 1, justifyContent: "center", padding: 20 },
+  keyboard: { flex: 1 },
+  scrollContainer: { flexGrow: 1 },
+  inner: { flex: 1, justifyContent: "center", padding: 20, minHeight: 520 },
   heading: { fontSize: 28, fontWeight: "700", color: colors.textPrimary, marginBottom: 6 },
   sub: { color: colors.textSecondary, marginBottom: 18 },
   errorSmall: { color: colors.danger, marginTop: 6, fontSize: 12 },
   error: { color: colors.danger, marginTop: 8 },
-  guestHint: { color: colors.accent, marginTop: 12, textAlign: "center" },
+  guestLink: { color: colors.accent, textDecorationLine: "underline" },
+  row: { marginTop: 12, flexDirection: "row", justifyContent: "flex-start", alignItems: "center" },
 });
