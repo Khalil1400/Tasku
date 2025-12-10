@@ -25,8 +25,10 @@ export default function CalendarPage() {
       }
     });
 
+    const reminderCount = tasks.filter((t) => t.reminder).length;
+    setTasksCount(reminderCount);
+
     setMarkedDates(marks);
-    setTasksCount(tasks.length);
   }
 
   useFocusEffect(() => {
@@ -84,7 +86,7 @@ const styles = StyleSheet.create({
   centerWrapper: {
     flex: 1,
     paddingHorizontal: 20,
-    marginTop: 15, // <-- slightly closer than before
+    marginTop: 15,
   },
 
   calendarCard: {
