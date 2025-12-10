@@ -25,7 +25,7 @@ export default function HomeScreen() {
 
       <TouchableOpacity
         style={styles.guestButton}
-        onPress={() => router.push("/(tabs)")}
+        onPress={() => router.replace("/(tabs)/tasks")}
       >
         <Text style={styles.guestText}>Continue as Guest</Text>
       </TouchableOpacity>

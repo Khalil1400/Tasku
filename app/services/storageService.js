@@ -1,7 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { v4 as uuidv4 } from "react-native-uuid";
 
 const ITEMS_KEY = "taskmate_items_v1";
+
+/* ---------------------------------------------- */
+/* STORAGE HELPERS */
+/* ---------------------------------------------- */
 
 export async function loadItems() {
   try {
@@ -21,6 +26,10 @@ export async function saveItems(items) {
   }
 }
 
+/* ---------------------------------------------- */
+/* BASIC CRUD */
+/* ---------------------------------------------- */
+
 export async function getAllItems() {
   return await loadItems();
 }
@@ -37,9 +46,10 @@ export async function addItem(itemData) {
     ...itemData,
     createdAt: Date.now(),
     isFavorite: false,
+    reminder: null,
+    notificationId: null,
   };
   const updatedItems = [newItem, ...items];
-  console.log(updatedItems)
   await saveItems(updatedItems);
   return newItem;
 }
@@ -56,6 +66,15 @@ export async function updateItem(updatedItem) {
 
 export async function deleteItem(id) {
   let items = await loadItems();
+
+  // Cancel any scheduled reminder before deleting
+  const item = items.find((it) => it.id === id);
+  if (item?.notificationId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(item.notificationId);
+    } catch (e) {}
+  }
+
   const updatedItems = items.filter((item) => item.id !== id);
   await saveItems(updatedItems);
 }
@@ -80,5 +99,87 @@ export function createItem(title, category) {
     category,
     createdAt: Date.now(),
     isFavorite: false,
+    reminder: null,
+    notificationId: null,
   };
+}
+
+/* ---------------------------------------------- */
+/* NOTIFICATION HELPERS */
+/* ---------------------------------------------- */
+
+async function scheduleLocalNotification(title, datetime) {
+  const triggerDate = new Date(datetime);
+
+  if (triggerDate.getTime() <= Date.now()) {
+    throw new Error("Cannot schedule notification in the past.");
+  }
+
+  const notificationId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Task Reminder",
+      body: title,
+      data: { type: "task" },
+    },
+    trigger: triggerDate,
+  });
+
+  return notificationId;
+}
+
+/* ---------------------------------------------- */
+/* REMINDER FUNCTIONS (THE ONES YOU NEED) */
+/* ---------------------------------------------- */
+
+export async function setReminder(id, datetime) {
+  let items = await loadItems();
+  let item = items.find((it) => it.id === id);
+
+  if (!item) throw new Error("Item not found");
+
+  // Cancel old reminder
+  if (item.notificationId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(item.notificationId);
+    } catch (e) {}
+  }
+
+  const iso = new Date(datetime).toISOString();
+
+  // Schedule new notification
+  const notificationId = await scheduleLocalNotification(item.title, iso);
+
+  // Update item
+  const updated = items.map((it) =>
+    it.id === id
+      ? { ...it, reminder: iso, notificationId }
+      : it
+  );
+
+  await saveItems(updated);
+
+  return { ...item, reminder: iso, notificationId };
+}
+
+export async function clearReminder(id) {
+  let items = await loadItems();
+  let item = items.find((it) => it.id === id);
+
+  if (!item) throw new Error("Item not found");
+
+  if (item.notificationId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(item.notificationId);
+    } catch (e) {}
+  }
+
+  const updated = items.map((it) =>
+    it.id === id
+      ? { ...it, reminder: null, notificationId: null }
+      : it
+  );
+
+  await saveItems(updated);
+
+  return { ...item, reminder: null, notificationId: null };
 }

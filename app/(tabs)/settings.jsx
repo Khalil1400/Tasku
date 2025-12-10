@@ -1,14 +1,17 @@
-// app/(tabs)/settings.jsx
 import { Alert, StyleSheet, Text, View } from "react-native";
 import MyButton from "../components/MyButton";
 import ScreenContainer from "../components/ScreenContainer";
+import colors from "../constants/colors";
 import { resetAllData } from "../services/storageService";
 
 export default function Settings() {
+
   return (
-    <ScreenContainer>
+    <ScreenContainer style={{ backgroundColor: colors.background }}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Settings</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>
+          Settings
+        </Text>
 
         <MyButton
           variant="secondary"
@@ -28,9 +31,9 @@ export default function Settings() {
           }}
         />
 
-        <Text style={{ marginTop: 20, color: "#666" }}>
-          About: Minimal Tasku demo app for project
-        </Text>
+        
+        
+          
       </View>
     </ScreenContainer>
   );

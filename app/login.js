@@ -41,8 +41,8 @@ export default function Login() {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.inner}>
-            <Text style={styles.heading}>Welcome back</Text>
-            <Text style={styles.sub}>Log in to continue to TaskMate</Text>
+            <Text style={styles.heading}>Welcome</Text>
+            <Text style={styles.sub}>Log in to continue to Tasku</Text>
 
             <Formik
               initialValues={{ email: "", password: "" }}
@@ -101,7 +101,7 @@ export default function Login() {
                       <Text style={styles.guestLink}>Continue as guest</Text>
                     </TouchableOpacity>
 
-                    {/* Create account link removed to prevent navigation to non-existent route */}
+                    {/* account link */}
                   </View>
 
                 </>

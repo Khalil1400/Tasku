@@ -1,14 +1,14 @@
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import colors from "../constants/colors";
 
-export default function ScreenContainer({ children }) {
+export default function ScreenContainer({ children, style }) {
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>{children}</View>
-    </SafeAreaView>
+    <View style={[styles.container, { backgroundColor: colors.card }, style]}>
+      {children}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
   container: { flex: 1 },
 });
