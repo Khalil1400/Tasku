@@ -8,6 +8,4 @@ My app is about creating tasks and setting reminders via a calender (work in pro
 - useFocusEffect, useContext, useState
 - Formik + yup
 - Safe area view
-
-### Known issues
-- Calender not working
+- Calender
