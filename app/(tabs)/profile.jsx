@@ -6,22 +6,29 @@ import { MyButton, ScreenContainer } from "../ui";
 import typography from "../constants/typography";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { getAllItems } from "../services/storageService";
+import { listTasks } from "../services/taskApi";
 
 export default function Profile() {
   const { user, updateProfile, signOut } = useAuth();
   const [loadingImage, setLoadingImage] = useState(false);
   const [stats, setStats] = useState({ total: 0, favorites: 0, reminders: 0 });
+  const [error, setError] = useState("");
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
   useEffect(() => {
     (async function loadStats() {
-      const items = await getAllItems();
-      const total = items.length;
-      const favorites = items.filter((i) => i.isFavorite).length;
-      const reminders = items.filter((i) => i.reminder).length;
-      setStats({ total, favorites, reminders });
+      try {
+        setError("");
+        const items = await listTasks();
+        const total = items.length;
+        const favorites = items.filter((i) => i.favorite).length;
+        const reminders = items.filter((i) => i.reminderAt).length;
+        setStats({ total, favorites, reminders });
+      } catch (err) {
+        console.log("Failed to load profile stats", err);
+        setError(err?.message || "Failed to load stats");
+      }
     })();
   }, []);
 
@@ -51,8 +58,8 @@ export default function Profile() {
           style={styles.avatar}
         />
 
-        <Text style={styles.name}>{user?.name || "Anonymous"}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+            <Text style={styles.value}>{user?.name || "-"}</Text>
+            <Text style={styles.value}>{user?.email || "-"}</Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -74,15 +81,17 @@ export default function Profile() {
           <MyButton text="Logout" variant="secondary" onPress={signOut} style={{ marginTop: 12 }} />
         </View>
 
+        {error ? <Text style={[styles.email, { color: colors.danger, textAlign: "center" }]}>{error}</Text> : null}
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Profile</Text>
           <View style={styles.row}>
             <Text style={styles.label}>Name</Text>
-            <Text style={styles.value}>{user?.name || "—"}</Text>
+            <Text style={styles.value}>{user?.name || "-"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{user?.email || "—"}</Text>
+            <Text style={styles.value}>{user?.email || "-"}</Text>
           </View>
         </View>
       </View>

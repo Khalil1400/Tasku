@@ -2,7 +2,14 @@
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { createContext, useContext, useEffect, useState } from "react";
-import { getProfile as getProfileFromStore, loginMock, logout as logoutService, saveProfile } from "../services/authService";
+import { clearAuthToken, setAuthToken, setUnauthorizedHandler } from "../services/apiClient";
+import {
+  clearStoredUser,
+  getStoredUser,
+  login as loginApi,
+  register as registerApi,
+  saveUser,
+} from "../services/authService";
 
 const TOKEN_KEY = "taskmate_token_v1";
 
@@ -11,19 +18,35 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [isReady, setReady] = useState(false);
+
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await clearStoredUser();
+      clearAuthToken();
+      setUser(null);
+      setToken(null);
+      try {
+        router.replace("/login");
+      } catch (navErr) {
+        console.log("navigation error on unauthorized", navErr);
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     let mounted = true;
     (async function restore() {
       try {
-        const token = await SecureStore.getItemAsync(TOKEN_KEY);
-        const profile = await getProfileFromStore();
+        const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        const storedUser = await getStoredUser();
         if (!mounted) return;
-        if (token && profile) {
-          setUser(profile);
-        } else {
-          setUser(null);
+        if (storedToken && storedUser) {
+          setAuthToken(storedToken);
+          setToken(storedToken);
+          setUser(storedUser);
         }
       } catch (err) {
         console.log("restore auth error", err);
@@ -37,25 +60,61 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  async function setSession(nextToken, profile) {
+    setAuthToken(nextToken);
+    setToken(nextToken);
+    setUser(profile);
+    await SecureStore.setItemAsync(TOKEN_KEY, nextToken);
+    await saveUser(profile);
+  }
+
+  function buildProfile(userPayload) {
+    return {
+      id: userPayload.id,
+      email: userPayload.email,
+      name: userPayload.email?.split("@")[0] || "User",
+      avatar: userPayload.avatar || null,
+    };
+  }
+
   async function signIn(email, password) {
     try {
-      const res = await loginMock(email, password);
-
-      await SecureStore.setItemAsync(TOKEN_KEY, res.token);
-      await saveProfile({ name: res.name, email: res.email, avatar: res.avatar });
-      setUser({ name: res.name, email: res.email, avatar: res.avatar });
-      return true;
+      const res = await loginApi(email, password);
+      const profile = buildProfile(res.user);
+      await setSession(res.token, profile);
+      return profile;
     } catch (err) {
-      console.log("signIn error", err);
-      throw err;
+      const status = err?.status;
+      const msg =
+        status === 401 || status === 400
+          ? "Invalid email or password."
+          : err?.message || "Login failed. Please try again.";
+      throw new Error(msg);
+    }
+  }
+
+  async function signUp(email, password) {
+    try {
+      const res = await registerApi(email, password);
+      const profile = buildProfile(res.user);
+      await setSession(res.token, profile);
+      return profile;
+    } catch (err) {
+      const msg =
+        err?.status === 400
+          ? err?.message || "Could not create account. Try a different email."
+          : err?.message || "Sign up failed. Please try again.";
+      throw new Error(msg);
     }
   }
 
   async function signOut() {
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await logoutService();
+      await clearStoredUser();
+      clearAuthToken();
       setUser(null);
+      setToken(null);
       try {
         router.replace("/");
       } catch (navErr) {
@@ -69,13 +128,23 @@ export function AuthProvider({ children }) {
   async function updateProfile(updates) {
     const merged = { ...(user || {}), ...updates };
     setUser(merged);
-    await saveProfile(merged);
+    await saveUser(merged);
   }
 
   if (!isReady) return null;
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, updateProfile, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        signIn,
+        signUp,
+        signOut,
+        updateProfile,
+        isAuthenticated: !!token,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

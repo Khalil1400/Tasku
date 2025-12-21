@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text } from "react-native";
 import * as Yup from "yup";
 import { MyButton, MyTextInput, ScreenContainer } from "./ui";
-import { getItemById, updateItem } from "./services/storageService";
+import { getTask, updateTask } from "./services/taskApi";
 
 const ItemSchema = Yup.object().shape({ title: Yup.string().required("Title required") });
 
@@ -13,16 +13,32 @@ export default function EditScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [initial, setInitial] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
-      const it = await getItemById(id);
-      setInitial(it);
+      try {
+        setError("");
+        const it = await getTask(id);
+        setInitial({
+          title: it.title,
+          category: it.category || "",
+          notes: it.description || "",
+          image: it.imageUrl || null,
+        });
+      } catch (err) {
+        console.log("Failed to load task", err);
+        setError(err?.message || "Failed to load task");
+      }
     })();
   }, [id]);
 
   if (!initial) {
-    return <ScreenContainer><Text style={{ padding: 20 }}>Loading...</Text></ScreenContainer>;
+    return (
+      <ScreenContainer>
+        {error ? <Text style={{ padding: 20, color: "red" }}>{error}</Text> : <Text style={{ padding: 20 }}>Loading...</Text>}
+      </ScreenContainer>
+    );
   }
 
   async function pickImage(setFieldValue) {
@@ -49,7 +65,13 @@ export default function EditScreen() {
         }}
         validationSchema={ItemSchema}
         onSubmit={async (values) => {
-          await updateItem({ ...initial, ...values });
+          setError("");
+          await updateTask(id, {
+            title: values.title,
+            category: values.category || null,
+            description: values.notes || "",
+            imageUrl: values.image || null,
+          });
           if (router.canGoBack()) {
             router.back();
           } else {
@@ -64,6 +86,7 @@ export default function EditScreen() {
             <MyTextInput label="Notes" value={values.notes} onChangeText={handleChange("notes")} multiline />
             {values.image ? <Image source={{ uri: values.image }} style={styles.image} /> : null}
             <MyButton text="Change Image" onPress={() => pickImage(setFieldValue)} />
+            {error ? <Text style={[styles.error, { color: "red" }]}>{error}</Text> : null}
             <MyButton text="Save Changes" onPress={handleSubmit} style={{ marginTop: 8 }} />
           </ScrollView>
         )}
@@ -75,4 +98,5 @@ export default function EditScreen() {
 const styles = StyleSheet.create({
   form: { padding: 12 },
   image: { height: 150, width: "100%", borderRadius: 8, marginVertical: 8, backgroundColor: "#eee" },
+  error: { marginTop: 10 },
 });

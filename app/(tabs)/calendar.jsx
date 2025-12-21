@@ -1,26 +1,30 @@
-import { useFocusEffect } from "expo-router";
-import { useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { ScreenContainer } from "../ui";
 import typography from "../constants/typography";
 import { useTheme } from "../contexts/ThemeContext";
-import { getAllItems } from "../services/storageService";
+import { useAuth } from "../contexts/AuthContext";
+import { listTasks } from "../services/taskApi";
 
 export default function CalendarPage() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isAuthenticated } = useAuth();
   const [markedDates, setMarkedDates] = useState({});
   const [tasksCount, setTasksCount] = useState(0);
   const [upcoming, setUpcoming] = useState([]);
+  const [error, setError] = useState("");
 
   async function loadMarkedDates() {
-    const tasks = await getAllItems();
+    if (!isAuthenticated) return;
+    const tasks = await listTasks();
     const marks = {};
 
     tasks.forEach((task) => {
-      if (task.reminder) {
-        const date = new Date(task.reminder);
+      if (task.reminderAt) {
+        const date = new Date(task.reminderAt);
         const dateStr = date.toISOString().split("T")[0];
 
         marks[dateStr] = {
@@ -30,21 +34,38 @@ export default function CalendarPage() {
       }
     });
 
-    const reminderCount = tasks.filter((t) => t.reminder).length;
+    const reminderCount = tasks.filter((t) => t.reminderAt).length;
     setTasksCount(reminderCount);
 
     const upcomingReminders = tasks
-      .filter((t) => t.reminder && new Date(t.reminder) >= new Date())
-      .sort((a, b) => new Date(a.reminder) - new Date(b.reminder))
+      .filter((t) => t.reminderAt && new Date(t.reminderAt) >= new Date())
+      .sort((a, b) => new Date(a.reminderAt) - new Date(b.reminderAt))
       .slice(0, 5);
     setUpcoming(upcomingReminders);
 
     setMarkedDates(marks);
   }
 
-  useFocusEffect(() => {
-    loadMarkedDates();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        router.replace("/login");
+        return;
+      }
+      (async () => {
+        try {
+          setError("");
+          await loadMarkedDates();
+        } catch (err) {
+          console.log("Failed to load reminders", err);
+          setError(err?.message || "Failed to load reminders");
+          setMarkedDates({});
+          setTasksCount(0);
+          setUpcoming([]);
+        }
+      })();
+    }, [isAuthenticated])
+  );
 
   return (
     <ScreenContainer>
@@ -56,6 +77,7 @@ export default function CalendarPage() {
       </View>
 
       <View style={styles.centerWrapper}>
+        {error ? <Text style={[styles.empty, { color: colors.danger }]}>{error}</Text> : null}
         <View style={styles.calendarCard}>
           <Calendar
             markedDates={markedDates}
@@ -126,7 +148,7 @@ export default function CalendarPage() {
             <Text style={styles.empty}>Plan a reminder to see it here.</Text>
           ) : (
             upcoming.map((item) => {
-              const dateObj = new Date(item.reminder);
+              const dateObj = new Date(item.reminderAt);
               const dateStr = dateObj.toLocaleDateString(undefined, { month: "short", day: "numeric" });
               const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
               return (

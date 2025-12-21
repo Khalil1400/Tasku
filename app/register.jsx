@@ -1,4 +1,3 @@
-// app/login.js
 import { useRouter } from "expo-router";
 import { Formik } from "formik";
 import { useState } from "react";
@@ -8,30 +7,20 @@ import { MyButton, MyTextInput, ScreenContainer } from "./ui";
 import { useAuth } from "./contexts/AuthContext";
 import { useTheme } from "./contexts/ThemeContext";
 
-const LoginSchema = Yup.object().shape({
+const RegisterSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email required"),
-  password: Yup.string().min(3, "Too short").required("Password required"),
+  password: Yup.string().min(6, "Min 6 characters").required("Password required"),
+  confirm: Yup.string()
+    .oneOf([Yup.ref("password"), null], "Passwords must match")
+    .required("Confirm your password"),
 });
 
-export default function Login() {
+export default function Register() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
   const { colors } = useTheme();
   const styles = createStyles(colors);
-
-  async function handleGuest() {
-    setLoading(true);
-    try {
-      await signIn("demo@tasku.com", "password123");
-      router.replace("/(tabs)/tasks");
-    } catch (err) {
-      console.warn("Guest sign-in failed:", err?.message || err);
-      alert(err?.message || "Demo login failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <ScreenContainer>
@@ -43,22 +32,22 @@ export default function Login() {
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.inner}>
             <View style={styles.hero}>
-              <Text style={styles.heading}>Tasku</Text>
-              <Text style={styles.sub}>Stay on top of tasks and reminders.</Text>
+              <Text style={styles.heading}>Create account</Text>
+              <Text style={styles.sub}>Sign up to sync your tasks securely.</Text>
             </View>
 
             <View style={styles.formCard}>
               <Formik
-                initialValues={{ email: "", password: "" }}
-                validationSchema={LoginSchema}
+                initialValues={{ email: "", password: "", confirm: "" }}
+                validationSchema={RegisterSchema}
                 onSubmit={async (values, actions) => {
                   setLoading(true);
                   actions.setFieldError("general", "");
                   try {
-                    await signIn(values.email, values.password);
+                    await signUp(values.email, values.password);
                     router.replace("/(tabs)/tasks");
                   } catch (err) {
-                    actions.setFieldError("general", err?.message || "Login failed");
+                    actions.setFieldError("general", err?.message || "Sign up failed");
                   } finally {
                     setLoading(false);
                   }
@@ -81,7 +70,7 @@ export default function Login() {
                       {touched.email && errors.email ? <Text style={styles.errorSmall}>{errors.email}</Text> : null}
                     </View>
 
-                    <View style={{ marginBottom: 6 }}>
+                    <View style={{ marginBottom: 12 }}>
                       <MyTextInput
                         label="Password"
                         value={values.password}
@@ -95,18 +84,29 @@ export default function Login() {
                       {touched.password && errors.password ? <Text style={styles.errorSmall}>{errors.password}</Text> : null}
                     </View>
 
+                    <View style={{ marginBottom: 6 }}>
+                      <MyTextInput
+                        label="Confirm password"
+                        value={values.confirm}
+                        onChangeText={handleChange("confirm")}
+                        onBlur={() => setFieldTouched("confirm", true)}
+                        secureTextEntry
+                        placeholder="********"
+                        textContentType="password"
+                        autoComplete="password"
+                      />
+                      {touched.confirm && errors.confirm ? <Text style={styles.errorSmall}>{errors.confirm}</Text> : null}
+                    </View>
+
                     {errors.general ? <Text style={styles.error}>{errors.general}</Text> : null}
 
                     <View style={{ marginTop: 14 }}>
-                      <MyButton text="Log in" onPress={handleSubmit} loading={loading} />
+                      <MyButton text="Sign up" onPress={handleSubmit} loading={loading} />
                     </View>
 
                     <View style={styles.row}>
-                      <TouchableOpacity onPress={handleGuest} disabled={loading}>
-                        <Text style={styles.guestLink}>Continue as guest</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => router.replace("/register")} disabled={loading}>
-                        <Text style={styles.forgot}>Create account</Text>
+                      <TouchableOpacity onPress={() => router.replace("/login")} disabled={loading}>
+                        <Text style={styles.link}>Already have an account? Log in</Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -126,7 +126,7 @@ const createStyles = (colors) =>
     scrollContainer: { flexGrow: 1 },
     inner: { flex: 1, justifyContent: "flex-start", padding: 20, minHeight: 520, gap: 14, paddingTop: 40 },
     hero: { alignItems: "center", gap: 4 },
-    heading: { fontSize: 30, fontWeight: "800", color: colors.text },
+    heading: { fontSize: 28, fontWeight: "800", color: colors.text },
     sub: { color: colors.textSecondary, marginBottom: 6 },
     formCard: {
       backgroundColor: colors.card,
@@ -142,7 +142,6 @@ const createStyles = (colors) =>
     },
     errorSmall: { color: colors.danger, marginTop: 6, fontSize: 12 },
     error: { color: colors.danger, marginTop: 8 },
-    guestLink: { color: colors.accent, textDecorationLine: "underline" },
-    forgot: { color: colors.textSecondary, marginLeft: 14 },
-    row: { marginTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    row: { marginTop: 12, flexDirection: "row", justifyContent: "center", alignItems: "center" },
+    link: { color: colors.accent, textDecorationLine: "underline" },
   });

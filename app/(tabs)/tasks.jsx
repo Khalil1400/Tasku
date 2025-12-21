@@ -16,15 +16,18 @@ import {
 
 import typography from "../constants/typography";
 import { useTheme } from "../contexts/ThemeContext";
+import { useAuth } from "../contexts/AuthContext";
 import { Card, MyButton, ScreenContainer } from "../ui";
 
-import { deleteItem, getAllItems, setReminder, toggleFavorite } from "../services/storageService";
+import { deleteTask, listTasks, updateTask } from "../services/taskApi";
 
 export default function TasksList() {
   const { colors, theme } = useTheme();
+  const { isAuthenticated } = useAuth();
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const styles = createStyles(colors);
 
   // Reminder modal
@@ -34,22 +37,30 @@ export default function TasksList() {
 
   /* LOAD TASKS */
   const load = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       setLoading(true);
-      const all = await getAllItems();
-      setItems(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      setError("");
+      const all = await listTasks();
+      const sorted = all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setItems(sorted);
     } catch (e) {
       console.log("Failed to load tasks", e);
+      setError(e?.message || "Failed to load tasks");
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {
+      if (!isAuthenticated) {
+        router.replace("/login");
+        return;
+      }
       load();
-    }, [load])
+    }, [isAuthenticated, load])
   );
 
   const filtered = items.filter((i) =>
@@ -59,7 +70,7 @@ export default function TasksList() {
   /*REMINDER MODAL */
   function openReminder(task) {
     setSelectedTask(task);
-    setReminderDate(task.reminder ? new Date(task.reminder) : new Date());
+    setReminderDate(task.reminderAt ? new Date(task.reminderAt) : new Date());
     setReminderModal(true);
   }
 
@@ -67,7 +78,7 @@ export default function TasksList() {
     if (!selectedTask) return;
 
     try {
-      await setReminder(selectedTask.id, reminderDate.toISOString());
+      await updateTask(selectedTask.id, { reminderAt: reminderDate.toISOString() });
       setReminderModal(false);
       load();
     } catch (e) {
@@ -92,6 +103,8 @@ export default function TasksList() {
         style={[styles.search, { color: colors.text }]}
       />
 
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
       {loading ? (
         <Text style={styles.loading}>Loading...</Text>
       ) : filtered.length === 0 ? (
@@ -104,7 +117,7 @@ export default function TasksList() {
           keyExtractor={(i) => i.id.toString()}
           contentContainerStyle={{ paddingBottom: 20 }}
           renderItem={({ item }) => {
-            const reminderDateObj = item.reminder ? new Date(item.reminder) : null;
+            const reminderDateObj = item.reminderAt ? new Date(item.reminderAt) : null;
             const formattedDate = reminderDateObj
               ? reminderDateObj.toLocaleDateString("en-GB", {
                   day: "2-digit",
@@ -135,16 +148,16 @@ export default function TasksList() {
                     </Text>
 
                     <View style={styles.badgesRow}>
-                      {item.isFavorite ? (
+                      {item.favorite ? (
                         <View style={[styles.pill, styles.pillStrong]}>
                           <AntDesign name="star" size={12} color="#fff" style={{ marginRight: 6 }} />
                           <Text style={styles.pillStrongText}>Favorite</Text>
                         </View>
                       ) : null}
-                      {item.reminder && (
+                      {item.reminderAt && (
                         <View style={styles.pill}>
                           <Feather name="clock" size={12} color={colors.primary} style={{ marginRight: 6 }} />
-                          <Text style={styles.pillText}>{formattedDate} • {formattedTime}</Text>
+                          <Text style={styles.pillText}>{formattedDate} @ {formattedTime}</Text>
                         </View>
                       )}
                     </View>
@@ -153,14 +166,18 @@ export default function TasksList() {
                   {/* FAVORITE ICON */}
                   <TouchableOpacity
                     onPress={async () => {
-                      await toggleFavorite(item.id);
-                      load();
+                      try {
+                        await updateTask(item.id, { favorite: !item.favorite });
+                        load();
+                      } catch (e) {
+                        alert(e?.message || "Failed to update favorite");
+                      }
                     }}
                   >
                     <AntDesign
                       name={"star"}
                       size={24}
-                      color={item.isFavorite ? colors.primary : colors.textSecondary}
+                      color={item.favorite ? colors.primary : colors.textSecondary}
                       style={styles.iconBubble}
                     />
                   </TouchableOpacity>
@@ -179,8 +196,12 @@ export default function TasksList() {
                           text: "Delete",
                           style: "destructive",
                           onPress: async () => {
-                            await deleteItem(item.id);
-                            load();
+                            try {
+                              await deleteTask(item.id);
+                              load();
+                            } catch (err) {
+                              alert(err?.message || "Failed to delete task");
+                            }
                           },
                         },
                       ]);
@@ -276,6 +297,7 @@ const createStyles = (colors) =>
     pillStrongText: { color: "#fff", fontSize: 12, fontFamily: typography.semibold },
     empty: { alignItems: "center", padding: 40 },
     emptyText: { color: colors.textSecondary, fontFamily: typography.medium },
+    error: { color: colors.danger, paddingHorizontal: 6, paddingBottom: 6, fontFamily: typography.medium },
     loading: { padding: 20, color: colors.textSecondary },
     iconBubble: {
       marginRight: 14,

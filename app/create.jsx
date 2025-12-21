@@ -1,11 +1,12 @@
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
 import { Formik } from "formik";
+import { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text } from "react-native";
 import * as Yup from "yup";
 import { MyButton, MyTextInput, ScreenContainer } from "./ui";
 import { useTheme } from "./contexts/ThemeContext";
-import { addItem } from "./services/storageService";
+import { createTask } from "./services/taskApi";
 
 const ItemSchema = Yup.object().shape({
   title: Yup.string().required("Title required"),
@@ -15,6 +16,7 @@ const ItemSchema = Yup.object().shape({
 export default function CreateScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const [error, setError] = useState("");
 
   async function pickImage(setFieldValue) {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,12 +39,18 @@ export default function CreateScreen() {
         validationSchema={ItemSchema}
         onSubmit={async (v, { setSubmitting, resetForm }) => {
           try {
-            await addItem(v);
+            setError("");
+            await createTask({
+              title: v.title,
+              category: v.category || null,
+              description: v.notes || "",
+              imageUrl: v.image || null,
+            });
             resetForm();
-            router.replace("/tasks");
+            router.replace("/(tabs)/tasks");
           } catch (e) {
             console.log("Add item failed", e);
-            alert(e?.message || "Failed to save task. Please try again.");
+            setError(e?.message || "Failed to save task. Please try again.");
           } finally {
             setSubmitting(false);
           }
@@ -60,6 +68,7 @@ export default function CreateScreen() {
             {values.image ? <Image source={{ uri: values.image }} style={styles.image} /> : null}
 
             <MyButton text="Pick Image" onPress={() => pickImage(setFieldValue)} />
+            {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
             <MyButton text={isSubmitting ? "Saving..." : "Save"} onPress={handleSubmit} loading={isSubmitting} style={{ marginTop: 8 }} />
           </ScrollView>
         )}

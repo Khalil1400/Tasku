@@ -1,17 +1,20 @@
 import { router } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import TaskuLogo from "../assets/images/Tasku_logo.png";
 import { MyButton, ScreenContainer } from "./ui";
 import { useTheme } from "./contexts/ThemeContext";
+import { useAuth } from "./contexts/AuthContext";
 import typography from "./constants/typography";
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { signIn } = useAuth();
   const styles = createStyles(colors);
   const spin = useRef(new Animated.Value(0)).current;
   const wink = useRef(new Animated.Value(1)).current;
   const ringOpacity = useRef(new Animated.Value(1)).current;
+  const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -65,8 +68,18 @@ export default function HomeScreen() {
         <MyButton text="Login" onPress={() => router.push("/login")} />
         <MyButton
           variant="secondary"
-          text="Continue as Guest"
-          onPress={() => router.replace("/(tabs)/tasks")}
+          text={demoLoading ? "Connecting..." : "Continue as Guest"}
+          onPress={async () => {
+            setDemoLoading(true);
+            try {
+              await signIn("demo@tasku.com", "password123");
+              router.replace("/(tabs)/tasks");
+            } catch (err) {
+              alert(err?.message || "Demo login failed. Please try again.");
+            } finally {
+              setDemoLoading(false);
+            }
+          }}
           style={{ marginTop: 10 }}
         />
       </View>

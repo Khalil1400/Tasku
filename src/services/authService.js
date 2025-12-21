@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { request } from "./apiClient";
+import api from "./api";
+import { getToken, setToken, TOKEN_KEY } from "./tokenStorage";
 
 const PROFILE_KEY = "tasku_profile_v1";
 const LEGACY_PROFILE_KEY = "datas";
@@ -15,24 +16,23 @@ async function readProfile(key) {
 }
 
 export async function login(email, password) {
-  return request("/auth/login", {
-    method: "POST",
-    body: { email, password },
-  });
+  const { data } = await api.post("/auth/login", { email, password });
+  await setToken(data.token);
+  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(data.user));
+  return data;
 }
 
 export async function register(email, password) {
-  return request("/auth/register", {
-    method: "POST",
-    body: { email, password },
-  });
+  const { data } = await api.post("/auth/register", { email, password });
+  await setToken(data.token);
+  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(data.user));
+  return data;
 }
 
-export async function getStoredUser() {
+export async function getProfile() {
   const current = await readProfile(PROFILE_KEY);
   if (current) return current;
 
-  // migrate legacy key if present
   const legacy = await readProfile(LEGACY_PROFILE_KEY);
   if (legacy) {
     await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(legacy));
@@ -43,19 +43,24 @@ export async function getStoredUser() {
   return null;
 }
 
-export async function saveUser(profile) {
+export async function saveProfile(profile) {
   try {
     await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     await AsyncStorage.removeItem(LEGACY_PROFILE_KEY);
   } catch (err) {
-    console.log("saveUser error", err);
+    console.log("saveProfile error", err);
   }
 }
 
-export async function clearStoredUser() {
+export async function logout() {
   try {
-    await AsyncStorage.multiRemove([PROFILE_KEY, LEGACY_PROFILE_KEY]);
+    await setToken(null);
+    await AsyncStorage.multiRemove([PROFILE_KEY, LEGACY_PROFILE_KEY, TOKEN_KEY]);
   } catch (err) {
-    console.log("clearStoredUser error", err);
+    console.log("logout error", err);
   }
+}
+
+export async function getStoredToken() {
+  return await getToken();
 }
