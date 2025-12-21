@@ -1,16 +1,27 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import colors from "../constants/colors";
-export default function TabsLayout() {
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import typography from "../constants/typography";
+import { useTheme } from "../contexts/ThemeContext";
 
+export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: colors.background },
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          height: 62 + insets.bottom,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 12),
+        },
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.text,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: { fontFamily: typography.medium, fontSize: 12 },
       }}
     >
       <Tabs.Screen
@@ -18,7 +29,7 @@ export default function TabsLayout() {
         options={{
           title: "Tasks",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="list" size={size} color={color} />
+            <MaterialIcons name="list" size={size + 2} color={color} />
           ),
         }}
       />
@@ -27,7 +38,7 @@ export default function TabsLayout() {
         options={{
           title: "Calendar",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="calendar-today" size={size} color={color} />
+            <MaterialIcons name="calendar-today" size={size + 2} color={color} />
           ),
         }}
       />
@@ -36,7 +47,7 @@ export default function TabsLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" size={size} color={color} />
+            <MaterialIcons name="person" size={size + 2} color={color} />
           ),
         }}
       />
@@ -45,7 +56,7 @@ export default function TabsLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="settings" size={size} color={color} />
+            <MaterialIcons name="settings" size={size + 2} color={color} />
           ),
         }}
       />

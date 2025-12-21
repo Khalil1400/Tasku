@@ -3,9 +3,8 @@ import { Stack, useRouter } from "expo-router";
 import { Formik } from "formik";
 import { Image, ScrollView, StyleSheet, Text } from "react-native";
 import * as Yup from "yup";
-import MyButton from "./components/MyButton";
-import MyTextInput from "./components/MyTextInput";
-import ScreenContainer from "./components/ScreenContainer";
+import { MyButton, MyTextInput, ScreenContainer } from "./ui";
+import { useTheme } from "./contexts/ThemeContext";
 import { addItem } from "./services/storageService";
 
 const ItemSchema = Yup.object().shape({
@@ -15,6 +14,7 @@ const ItemSchema = Yup.object().shape({
 
 export default function CreateScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
 
   async function pickImage(setFieldValue) {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -35,12 +35,23 @@ export default function CreateScreen() {
       <Formik
         initialValues={{ title: "", category: "", notes: "", image: null }}
         validationSchema={ItemSchema}
-        onSubmit={(v) => addItem(v).then(() => router.replace("(tabs)/tasks"))}
+        onSubmit={async (v, { setSubmitting, resetForm }) => {
+          try {
+            await addItem(v);
+            resetForm();
+            router.replace("/tasks");
+          } catch (e) {
+            console.log("Add item failed", e);
+            alert(e?.message || "Failed to save task. Please try again.");
+          } finally {
+            setSubmitting(false);
+          }
+        }}
       >
-        {({ handleSubmit, handleChange, values, errors, touched, setFieldValue }) => (
+        {({ handleSubmit, handleChange, values, errors, touched, setFieldValue, isSubmitting }) => (
           <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>
             <MyTextInput label="Title" placeholder="Task title" value={values.title} onChangeText={handleChange("title")} />
-            {errors.title && touched.title ? <Text style={styles.error}>{errors.title}</Text> : null}
+            {errors.title && touched.title ? <Text style={[styles.error, { color: colors.danger }]}>{errors.title}</Text> : null}
 
             <MyTextInput label="Category" placeholder="Category" value={values.category} onChangeText={handleChange("category")} />
 
@@ -49,7 +60,7 @@ export default function CreateScreen() {
             {values.image ? <Image source={{ uri: values.image }} style={styles.image} /> : null}
 
             <MyButton text="Pick Image" onPress={() => pickImage(setFieldValue)} />
-            <MyButton text="Save" onPress={handleSubmit} style={{ marginTop: 8 }} />
+            <MyButton text={isSubmitting ? "Saving..." : "Save"} onPress={handleSubmit} loading={isSubmitting} style={{ marginTop: 8 }} />
           </ScrollView>
         )}
       </Formik>

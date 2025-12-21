@@ -1,81 +1,117 @@
 import { router } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-//logo
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import TaskuLogo from "../assets/images/Tasku_logo.png";
+import { MyButton, ScreenContainer } from "./ui";
+import { useTheme } from "./contexts/ThemeContext";
+import typography from "./constants/typography";
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const spin = useRef(new Animated.Value(0)).current;
+  const wink = useRef(new Animated.Value(1)).current;
+  const ringOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 8000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(wink, { toValue: 0.82, duration: 120, useNativeDriver: true }),
+        Animated.timing(wink, { toValue: 1, duration: 140, useNativeDriver: true }),
+        Animated.delay(1600),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(6500),
+        Animated.timing(ringOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(ringOpacity, { toValue: 1, duration: 1, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [spin, wink]);
+
+  const rotateInterpolate = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
-    <View style={styles.container}>
-      
-      <Image source={TaskuLogo} style={styles.logo} resizeMode="contain" />
+    <ScreenContainer style={styles.container}>
+      <View style={styles.hero}>
+        <View style={styles.logoWrap}>
+          <Animated.View style={[styles.ring, { transform: [{ rotate: rotateInterpolate }], opacity: ringOpacity }]} />
+          <Animated.Image
+            source={TaskuLogo}
+            style={[styles.logo, { transform: [{ scaleY: wink }] }]}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.title}>Tasku</Text>
+        <Text style={styles.subtitle}>Your personal task manager crafted for simplicity.</Text>
+      </View>
 
-      <Text style={styles.title}>Tasku</Text>
-      <Text style={styles.subtitle}>
-        Your personal task manager crafted for simplicity
-      </Text>
-      <View style={{ height: 35 }} />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/login")}
-      >
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.guestButton}
-        onPress={() => router.replace("/(tabs)/tasks")}
-      >
-        <Text style={styles.guestText}>Continue as Guest</Text>
-      </TouchableOpacity>
-
-    </View>
+      <View style={styles.actions}>
+        <MyButton text="Login" onPress={() => router.push("/login")} />
+        <MyButton
+          variant="secondary"
+          text="Continue as Guest"
+          onPress={() => router.replace("/(tabs)/tasks")}
+          style={{ marginTop: 10 }}
+        />
+      </View>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 25,
-    backgroundColor: "#f8f8f8",
-  },
-  logo: {
-    width: 140,
-    height: 140,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 38,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#666",
-    marginHorizontal: 20,
-  },
-  button: {
-    backgroundColor: "#3b82f6",
-    paddingVertical: 12,
-    paddingHorizontal: 50,
-    borderRadius: 10,
-    marginTop: 20,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  guestButton: {
-    marginTop: 15,
-  },
-  guestText: {
-    color: "#3b82f6",
-    fontSize: 16,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: { justifyContent: "center", alignItems: "center" },
+    hero: { alignItems: "center", gap: 10, marginBottom: 24 },
+    logoWrap: {
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: colors.card,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.14,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 4,
+      overflow: "visible",
+    },
+    ring: {
+      position: "absolute",
+      width: 170,
+      height: 170,
+      borderRadius: 85,
+      borderWidth: 6,
+      borderColor: "transparent",
+      borderTopColor: "rgba(34, 197, 94, 0.45)",
+      borderBottomColor: "rgba(34, 197, 94, 0.45)",
+      borderLeftColor: "transparent",
+      borderRightColor: "transparent",
+    },
+    logo: { width: 120, height: 120 },
+    title: { fontSize: 34, fontWeight: "800", fontFamily: typography.bold, color: colors.text },
+    subtitle: {
+      fontSize: 15,
+      textAlign: "center",
+      color: colors.textSecondary,
+      maxWidth: 260,
+      fontFamily: typography.medium,
+    },
+    actions: { width: "100%", paddingHorizontal: 24 },
+  });

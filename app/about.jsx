@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
-import MyButton from "./components/MyButton";
-import ScreenContainer from "./components/ScreenContainer";
+import { MyButton, ScreenContainer } from "./ui";
 
 export default function About() {
   const router = useRouter();

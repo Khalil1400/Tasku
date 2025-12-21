@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { v4 as uuidv4 } from "react-native-uuid";
+import uuid from "react-native-uuid";
 
 const ITEMS_KEY = "taskmate_items_v1";
 
@@ -38,7 +38,7 @@ export async function getItemById(id) {
 export async function addItem(itemData) {
   const items = await loadItems();
   const newItem = {
-    id: uuidv4(),
+    id: uuid.v4(),
     ...itemData,
     createdAt: Date.now(),
     isFavorite: false,
@@ -110,7 +110,7 @@ export async function resetAllData() {
 
 export function createItem(title, category) {
   return {
-    id: uuidv4(),
+    id: uuid.v4(),
     title,
     category,
     createdAt: Date.now(),

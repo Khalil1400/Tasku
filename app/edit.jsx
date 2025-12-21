@@ -4,9 +4,7 @@ import { Formik } from "formik";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text } from "react-native";
 import * as Yup from "yup";
-import MyButton from "./components/MyButton";
-import MyTextInput from "./components/MyTextInput";
-import ScreenContainer from "./components/ScreenContainer";
+import { MyButton, MyTextInput, ScreenContainer } from "./ui";
 import { getItemById, updateItem } from "./services/storageService";
 
 const ItemSchema = Yup.object().shape({ title: Yup.string().required("Title required") });

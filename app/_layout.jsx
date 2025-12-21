@@ -2,7 +2,22 @@ import * as Notifications from 'expo-notifications';
 import { Stack } from "expo-router";
 import { useEffect } from 'react';
 import { AuthProvider } from "./contexts/AuthContext";
-import colors from "./constants/colors";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+
+function ThemedStack() {
+  const { colors } = useTheme();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        contentStyle: { paddingTop: 32, backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ gestureEnabled: true }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -16,15 +31,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <AuthProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { paddingTop: 32, backgroundColor: colors.background },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
-      </Stack>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemedStack />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
