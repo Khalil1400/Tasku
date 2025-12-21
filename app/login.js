@@ -84,8 +84,9 @@ export default function Login() {
                       onChangeText={handleChange("password")}
                       onBlur={() => setFieldTouched("password", true)}
                       secureTextEntry
-                      placeholder="••••••••"
+                      placeholder="********"
                       textContentType="password"
+                      autoComplete="password"
                     />
                     {touched.password && errors.password ? <Text style={styles.errorSmall}>{errors.password}</Text> : null}
                   </View>

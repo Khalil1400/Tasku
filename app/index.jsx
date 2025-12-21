@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// Import your logo
+//logo
 import TaskuLogo from "../assets/images/Tasku_logo.png";
 
 export default function HomeScreen() {

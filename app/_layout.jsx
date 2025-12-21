@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack } from "expo-router";
 import { useEffect } from 'react';
 import { AuthProvider } from "./contexts/AuthContext";
+import colors from "./constants/colors";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -16,7 +17,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { paddingBlockStart: 32 }, }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { paddingTop: 32, backgroundColor: colors.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
       </Stack>
     </AuthProvider>

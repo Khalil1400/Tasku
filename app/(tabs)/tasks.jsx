@@ -1,7 +1,7 @@
 import { AntDesign, Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useFocusEffect } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Button,
   FlatList,
@@ -32,25 +32,27 @@ export default function TasksList() {
   const [reminderDate, setReminderDate] = useState(new Date());
 
   /* LOAD TASKS */
-  async function load() {
-    setLoading(true);
-    const all = await getAllItems();
-    setItems(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    setLoading(false);
-  }
-
-  useFocusEffect(() => {
-    load();
-  });
-
-  useEffect(() => {
-    const unsubscribe = router.addListener?.("focus", load);
-    load();
-    return unsubscribe;
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const all = await getAllItems();
+      setItems(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (e) {
+      console.log("Failed to load tasks", e);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   const filtered = items.filter((i) =>
-    i.title.toLowerCase().includes(query.toLowerCase())
+    (i.title || "").toLowerCase().includes(query.toLowerCase())
   );
 
   /*REMINDER MODAL */
@@ -83,10 +85,10 @@ export default function TasksList() {
 
       <TextInput
         placeholder="Search..."
-        placeholderTextColor="black" // <-- placeholder in black
+        placeholderTextColor={colors.textSecondary}
         value={query}
         onChangeText={setQuery}
-        style={[styles.search, { color: "black" }]} // <-- typed text in black
+        style={[styles.search, { color: colors.text }]}
       />
 
       {loading ? (
@@ -122,7 +124,7 @@ export default function TasksList() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{item.title}</Text>
                     <Text style={styles.meta}>
-                      {item.category || "General"} •{" "}
+                      {item.category || "General"} |{" "}
                       {new Date(item.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -132,8 +134,8 @@ export default function TasksList() {
 
                     {item.reminder && (
                       <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                        <Feather name="clock" size={14} color="#3b82f6" style={{ marginRight: 4 }} />
-                        <Text style={styles.reminder}>{formattedDate} • {formattedTime}</Text>
+                        <Feather name="clock" size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                        <Text style={styles.reminder}>{formattedDate} | {formattedTime}</Text>
                       </View>
                     )}
                   </View>
@@ -201,14 +203,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
-  title: { fontSize: 22, fontWeight: "700" },
-  search: { margin: 12, padding: 10, borderRadius: 8, backgroundColor: "#f3f3f3" },
+  title: { fontSize: 22, fontWeight: "700", color: colors.text },
+  search: {
+    margin: 12,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
   row: { flexDirection: "row", alignItems: "center" },
   itemTitle: { fontSize: 16, fontWeight: "600" },
-  meta: { color: "black", marginTop: 4, fontSize: 12 },
-  reminder: { fontSize: 12, color: "#3b82f6" },
+  meta: { color: colors.textSecondary, marginTop: 4, fontSize: 12 },
+  reminder: { fontSize: 12, color: colors.primary },
   empty: { alignItems: "center", padding: 40 },
-  emptyText: { color: "#666" },
+  emptyText: { color: colors.textSecondary },
 
   modalOverlay: {
     flex: 1,
@@ -219,10 +228,14 @@ const styles = StyleSheet.create({
   modalBox: {
     width: "85%",
     padding: 20,
-    backgroundColor: "black",
+    backgroundColor: colors.card,
     borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10, color: "white" },
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10, color: colors.text },
   modalButtons: {
     marginTop: 20,
     flexDirection: "row",

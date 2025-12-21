@@ -3,7 +3,7 @@ import colors from "../constants/colors";
 
 export default function ScreenContainer({ children, style }) {
   return (
-    <View style={[styles.container, { backgroundColor: colors.card }, style]}>
+    <View style={[styles.container, { backgroundColor: colors.background }, style]}>
       {children}
     </View>
   );
