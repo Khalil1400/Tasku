@@ -20,6 +20,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Card, MyButton, ScreenContainer } from "../ui";
 
 import { deleteTask, listTasks, updateTask } from "../services/taskApi";
+import { clearReminder as cancelTaskReminder, setReminder as scheduleTaskReminder } from "../services/reminderService";
 
 export default function TasksList() {
   const { colors, theme } = useTheme();
@@ -78,12 +79,14 @@ export default function TasksList() {
     if (!selectedTask) return;
 
     try {
-      await updateTask(selectedTask.id, { reminderAt: reminderDate.toISOString() });
+      const iso = reminderDate.toISOString();
+      await scheduleTaskReminder(selectedTask.id, selectedTask.title, iso);
+      await updateTask(selectedTask.id, { reminderAt: iso });
       setReminderModal(false);
       load();
     } catch (e) {
       console.log("Failed to set reminder:", e);
-      alert("Failed to set reminder. Make sure notifications are allowed.");
+      alert(e?.message || "Failed to set reminder. Make sure notifications are allowed.");
     }
   }
 
@@ -197,6 +200,7 @@ export default function TasksList() {
                           style: "destructive",
                           onPress: async () => {
                             try {
+                              await cancelTaskReminder(item.id);
                               await deleteTask(item.id);
                               load();
                             } catch (err) {
